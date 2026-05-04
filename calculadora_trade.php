@@ -272,7 +272,14 @@
 
 
         <div id="seccion-trades">
-
+            <div style="margin-bottom:10px;">
+                <input type="date" id="fechaInicio">
+                <input type="date" id="fechaFin">
+                <button onclick="cargarTrades()">🔍 Filtrar</button>
+            </div>
+            <div class="card">
+                💰 Total filtrado: <span id="totalFiltrado">$0</span>
+            </div>
             <h3>📋 Trades</h3>
             <div class="tabla-container">
                 <table>
@@ -415,64 +422,64 @@
 
             function cargarTrades() {
 
-                fetch("obtener_trades.php")
+                let inicio = document.getElementById("fechaInicio").value;
+                let fin = document.getElementById("fechaFin").value;
+
+                let url = "obtener_trades.php";
+
+                if (inicio && fin) {
+                    url += "?inicio=" + inicio + "&fin=" + fin;
+                }
+
+                fetch(url)
                     .then(r => r.json())
                     .then(data => {
 
                         let html = "";
+                        let total = 0; // 🔥 acumulador
 
                         data.forEach(t => {
+
+                            total += parseFloat(t.resultado_real); // 🔥 SUMA
+
                             html += `
-<tr>
-<td data-label="Par">${t.par}</td>
+                            <tr>
+                            <td data-label="Par">${t.par}</td>
+                            <td data-label="Entrada">${t.entrada}</td>
 
-<td data-label="Entrada">${t.entrada}</td>
+                            <td data-label="Cierre">
+                            <input type="number" value="${t.cierre}" 
+                            onchange="actualizarCierre(${t.id}, this.value)">
+                            </td>
 
-<td data-label="Cierre">
-<input 
-    type="number" 
-    value="${t.cierre}" 
-    onchange="actualizarCierre(${t.id}, this.value)"
->
-</td>
-<td data-label="SL">${t.sl}</td>
+                            <td data-label="SL">${t.sl}</td>
+                            <td data-label="TP">${t.tp}</td>
 
-<td data-label="TP">${t.tp}</td>
+                            <td data-label="Resultado">
+                            <span class="${t.resultado_real >= 0 ? 'ganancia' : 'perdida'}">
+                            $${t.resultado_real.toFixed(2)}
+                            </span>
+                            <br>
+                            <small>${t.pips.toFixed(2)} pips</small>
+                            </td>
 
+                            <td data-label="Estado">
+                            <select onchange="cambiarEstado(${t.id},this.value)">
+                            <option value="pendiente" ${t.estado == "pendiente" ? "selected" : ""}>pendiente</option>
+                            <option value="cerrado" ${t.estado == "cerrado" ? "selected" : ""}>cerrado</option>
+                            </select>
+                            </td>
 
-
-
-<td data-label="Resultado">
-<span class="${t.resultado_real >= 0 ? 'ganancia' : 'perdida'}">
-    $${t.resultado_real.toFixed(2)}
-</span>
-<br>
-<small>${t.pips.toFixed(2)} pips</small>
-
-
-</td>
-
-<td data-label="Estado">
-<select onchange="cambiarEstado(${t.id},this.value)">
-<option value="pendiente" ${t.estado == "pendiente" ? "selected" : ""}>pendiente</option>
-<option value="cerrado" ${t.estado == "cerrado" ? "selected" : ""}>cerrado</option>
-</select>
-</td>
-
-<td data-label="Acción">
-<button onclick="eliminarTrade(${t.id})">❌</button>
-</td>
-
-</td></tr>`;
+                            <td data-label="Acción">
+                            <button onclick="eliminarTrade(${t.id})">❌</button>
+                            </td>
+                            </tr>`;
                         });
 
                         document.getElementById("tablaTrades").innerHTML = html;
 
-                        // 🔥 AQUI ADENTRO (IMPORTANTE)
-                        document.querySelectorAll(".resultado-input").forEach(input => {
-                            cambiarColorInput(input);
-                        });
-
+                        // 🔥 MOSTRAR TOTAL
+                        document.getElementById("totalFiltrado").innerText = "$" + total.toFixed(2);
                     });
             }
 
@@ -611,7 +618,18 @@
             }
 
             window.addEventListener("load", () => {
+
+                // mostrar sección inicial
                 mostrarSeccion("calc");
+
+                // 🔥 poner fecha de hoy automáticamente
+                let hoy = new Date().toISOString().split("T")[0];
+
+                document.getElementById("fechaInicio").value = hoy;
+                document.getElementById("fechaFin").value = hoy;
+
+                // 🔥 cargar trades con filtro de hoy
+                cargarTrades();
             });
         </script>
 </body>
